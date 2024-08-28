@@ -3,13 +3,13 @@ from time import strftime
 from typing import Dict
 
 from util.nodes.lsl import LSLPollerNode, LSLPollerConfig
-from util.nodes.ecg import ECGSimulator, ECGConfig
+from util.nodes.sim import ECGSimulator, ECGConfig
 from util.nodes.bandpass import BandPass, BandPassConfig
 from util.nodes.qrs import QRSDetector, QRSDetectorConfig
 from experiment import Experiment
 import labgraph as lg
 
-SIMULATE = False
+SIMULATE = True
 ECG_CHANNEL = 0     # channel of LSL stream to use as ECG
 SFREQ = 100.        # desired sampling rate
 POLLING_RATE = 500. # lowest hardware rate of TMSi SAGA
@@ -48,7 +48,7 @@ class Graph(lg.Graph):
                 high_cutoff = 15.,
                 sfreq = SFREQ,
                 ch_idx = ECG_CHANNEL,
-                convert_microV_to_mV = convert
+                #convert_microV_to_mV = convert
             )
         )
         self.DETECTOR.configure(
@@ -67,7 +67,7 @@ class Graph(lg.Graph):
 
     # Parallelization: Run nodes in separate processes
     def process_modules(self) -> Tuple[lg.Module, ...]:
-        return (self.GENERATOR, self.FILTER, self.DETECTOR, self.CONTROLLER, self.DISPLAY)
+        return (self.GENERATOR, self.FILTER, self.DETECTOR, self.EXPERIMENT)
 
     def logging(self) -> Dict[str, lg.Topic]:
         return {

@@ -3,8 +3,8 @@ import numpy as np
 import asyncio
 from pylsl import local_clock
 
-from ._messages import SampleMessage
-from ._rate import Rate
+from .util.messages import SampleMessage
+from .util.rate import Rate
 import labgraph as lg
 
 class ECGState(lg.State):

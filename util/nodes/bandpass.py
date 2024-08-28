@@ -5,7 +5,7 @@ import asyncio
 
 from typing import Deque
 
-from ._messages import SampleMessage, FloatMessage
+from .util.messages import SampleMessage, FloatMessage
 import labgraph as lg
 
 class BandPassState(lg.State):

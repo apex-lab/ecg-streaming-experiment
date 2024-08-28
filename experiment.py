@@ -26,30 +26,29 @@ import labgraph as lg
 class ExperimentState(lg.State):
     ibis: Deque[float] = None
     t_of_last_R: float = None
-    play_until: float = 0. # will play sounds until this time on LSL local_clock
     trial_type: str = 'systole'
-    A_hz: float = 1000.
-    B_hz: float = 500.
+    detected: bool = False
 
 class ExperimentConfig(lg.Config):
-    trials: int = 10
+    trials: int = 2
     kb_name: str = 'Dell Dell USB Keyboard'
-    buffer_size: int = 5 # of IBIs to average over when caculating HR
+    buffer_size: int = 10 # of IBIs to average over when caculating HR
     trial_duration: float = 10. # seconds
+        
 
 class Experiment(lg.Node):
     """
     This node runs the participant-facing experiment task in psychopy.
     """
-    QRS_TOPIC = lg.Topic(FloatMessage)
+    INPUT = lg.Topic(FloatMessage)
 
     state: ExperimentState
     config: ExperimentConfig
 
     def setup(self) -> None: # anything involving graphics is set up in .main()
         self.state.t_of_last_R = local_clock()
-        self.state.ibis = deque([], self.buffer_size)
-        self.kb = get_keyboard(self.config.kb_name)
+        self.state.ibis = deque([], self.config.buffer_size)
+        #self.kb = get_keyboard(self.config.kb_name)
 
     def cleanup(self) -> None:
         """
@@ -66,8 +65,8 @@ class Experiment(lg.Node):
         '''
         return np.mean(self.state.ibis)
 
-    @lg.subscriber(QRS_TOPIC)
-    def update(self, message: DisplayMessage) -> None:
+    @lg.subscriber(INPUT)
+    def update(self, message: FloatMessage) -> None:
         """
         Subscribes to topic that gives time since last R-peak.
         """
@@ -80,29 +79,35 @@ class Experiment(lg.Node):
         self.state.ibis.append(ibi) # add to buffer
         self.state.t_of_last_R = t
         # and then trigger next tones if during a trial
-        self.play_sequence(t)
+        self.state.detected = True
 
-    def play_sequence(self, start_t):
-        '''
-        plays
-        '''
-        A = self.state.A_Hz
-        B = self.state.B_Hz
-        if local_clock() > self.state.play_until:
-            return # don't play any sounds....
+    def wait_until_detected(self):
+        #self.state.detected = False # reset
+        while not self.state.detected:
+            ptb.WaitSecs(.005)
+        self.state.detected = False # reset
+        t = self.state.t_of_last_R
+        already_elapsed = local_clock() - t
+        t = ptb.GetSecs() - already_elapsed # time of R-peak on PTB clock
+        return t
+
+    def play_sequence(self, R):
+        A = self.state.A_hz
+        B = self.state.B_hz
         ibi = self.IBI
+        th = 1/6 # 1/6*ibi is about 1/2 systole
         if 'systole' in self.state.trial_type:
-            th = 1/6 # 1/6*ibi is about 1/2 systole
-            offsets = [(th+3/4)*ibi, (th+1)*ibi, (th+1/4)*ibi]
+            offsets = [(th+3/4)*ibi, (th+1)*ibi, (th+5/4)*ibi]
         elif 'diastole' in self.state.trial_type:
             offsets = [(th+1/4)*ibi, (th+1/2)*ibi, (th+3/4)*ibi]
-        already_elapsed = local_clock() - start_t
-        R = ptb.GetSecs() - already_elapsed # start time on PTB clock
+
         if 'disc' in self.state.trial_type:
             # play a single sound for discrimnation task
             snd = Sound(B, secs = .1)
-            snd.play(when = r + offsets[1]) # try to hit middle of target phase
+            snd.play(when = R + offsets[1]) # try to hit middle of target phase
+            ptb.WaitSecs(offsets[1])
             return
+
         # if not discrimination task, then play full ABA sequence
         sounds = []
         for hz in [A, B, A]:
@@ -111,26 +116,32 @@ class Experiment(lg.Node):
         for snd, offset in zip(sounds, offsets):
             # and then schedule playuback for target cardiac phases
             snd.play(when = R + offset) # schedule sounds
+        ptb.WaitSecs(offsets[-1])
 
-    def streaming_trial(self, A_freq, cardiac_phase):
-        # set trial configuration
-        self.state.A_hz = A_freq
-        self.state.trial_type = '%s_streaming'%cardiac_phase
-        # signal listening thread to play sounds until trial duration elapsed
-        self.state.play_until = local_clock() + self.config.trial_duration
-        # and wait here until sounds are done playing
-        ptb.WaitSecs(self.config.trial_duration + 1.)
-        return
+    def streaming_trial(self, A = 200., phase = 'systole'):
 
-    def discrimination_trial(self, cardiac_phase):
-        # set trial configuration
-        self.state.trial_type = '%s_discrimination'%cardiac_phase
-        # signal listening thread to play sounds until trial duration elapsed
-        self.state.play_until = local_clock() + self.config.trial_duration
-        # and wait here until sounds are done playing
-        ptb.WaitSecs(self.config.trial_duration + 1.)
-        return
+        B = 500.
 
+        th = 1/6 # middle of systole as a proportion of R-R interval
+        ibi = self.IBI
+        dur = ibi/4 - .050 # 50 ms space in between stimuli
+        A1 = Sound(A, secs = dur)
+        B1 = Sound(B, secs = dur)
+        A2 = Sound(A, secs = dur)
+        if 'systole' in self.state.trial_type:
+            offsets = [(th+3/4)*ibi, (th+1)*ibi, (th+5/4)*ibi]
+        elif 'diastole' in self.state.trial_type:
+            offsets = [(th+1/4)*ibi, (th+1/2)*ibi, (th+3/4)*ibi]
+
+        self.state.detected = False # reset
+        tt = ptb.GetSecs()
+        while ptb.GetSecs() < (tt + self.config.trial_duration):
+            t = self.wait_until_detected() # time of R peak
+            A1.play(when = t + offsets[0])
+            B1.play(when = t + offsets[1])
+            A2.play(when = t + offsets[2])
+            ptb.WaitSecs('UntilTime', t + offsets[2] + dur)
+            
     @lg.main
     def experiment(self):
         '''
@@ -145,13 +156,20 @@ class Experiment(lg.Node):
             units = 'pix',
         )
 
+        for i in range(5):
+            self.wait_until_detected()
+            print('det')
+        ptb.WaitSecs(1.)
+        self.streaming_trial(phase = 'systole')
+        self.streaming_trial(phase = 'diastole')
+        
         # orient the subject
         #show_opening_instructions(win, self.kb)
-        ptb.WaitSecs(6.)
-        for trial in range(self.config.trials//2):
-            self.streaming_trial(1000., 'systole')
-        for trial in range(self.config.trials//2):
-            self.streaming_trial(1000., 'diastole')
+        
+        #for trial in range(self.config.trials//2):
+        #    self.streaming_trial(1000., 'systole')
+        #for trial in range(self.config.trials//2):
+        #    self.streaming_trial(1000., 'diastole')
 
 
         #show_closing_instructions(win, self.kb)

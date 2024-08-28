@@ -4,7 +4,7 @@ import asyncio
 from typing import Deque
 from scipy.signal import find_peaks
 
-from ._messages import FloatMessage
+from .util.messages import FloatMessage
 import labgraph as lg
 
 
