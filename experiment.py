@@ -124,23 +124,28 @@ class Experiment(lg.Node):
 
         th = 1/6 # middle of systole as a proportion of R-R interval
         ibi = self.IBI
-        dur = ibi/4 - .050 # 50 ms space in between stimuli
+        dur = ibi/4 - .070 # minus space in between stimuli
         A1 = Sound(A, secs = dur)
         B1 = Sound(B, secs = dur)
         A2 = Sound(A, secs = dur)
-        if 'systole' in self.state.trial_type:
-            offsets = [(th+3/4)*ibi, (th+1)*ibi, (th+5/4)*ibi]
-        elif 'diastole' in self.state.trial_type:
-            offsets = [(th+1/4)*ibi, (th+1/2)*ibi, (th+3/4)*ibi]
 
         self.state.detected = False # reset
         tt = ptb.GetSecs()
         while ptb.GetSecs() < (tt + self.config.trial_duration):
             t = self.wait_until_detected() # time of R peak
+            ibi = self.IBI
+            if phase == 'systole':
+                offsets = [(th+3/4)*ibi, (th+1)*ibi, (th+5/4)*ibi]
+            elif phase == 'diastole':
+                offsets = [(th+1/4)*ibi, (th+1/2)*ibi, (th+3/4)*ibi]
             A1.play(when = t + offsets[0])
             B1.play(when = t + offsets[1])
             A2.play(when = t + offsets[2])
             ptb.WaitSecs('UntilTime', t + offsets[2] + dur)
+            A1.stop()
+            B1.stop()
+            A2.stop()
+        self.wait_until_detected()
             
     @lg.main
     def experiment(self):
