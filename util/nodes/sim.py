@@ -13,7 +13,7 @@ class ECGState(lg.State):
 
 class ECGConfig(lg.Config):
     sfreq: float = 100.
-    heart_rate: float = 60.
+    heart_rate: float = 80.
 
 class ECGSimulator(lg.Node):
     '''

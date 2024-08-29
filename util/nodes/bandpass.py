@@ -15,7 +15,7 @@ class BandPassState(lg.State):
 
 class BandPassConfig(lg.Config):
     # filter specifications
-    low_cutoff: float = 5.,
+    low_cutoff: float = 5.
     high_cutoff: float = 15.
     sfreq: float = 100.
     order: int = 1
