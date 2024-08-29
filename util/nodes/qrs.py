@@ -139,11 +139,12 @@ class QRSDetector(lg.Node):
     @lg.publisher(OUTPUT)
     async def process(self, message: FloatMessage) -> lg.AsyncPublisher:
         '''
-        Receives a new observation of filtered ECG time series, and yields the
-        time since the last detected R-peak.
+        Receives a new observation of filtered ECG time series, and yields 
+        a message every time an R-peak is detected with its original LSL clock time
         '''
         x = message.data
         t = message.timestamp
         self.state.xs.append(x)
         self.detect_qrs() # updates self.t_since_qrs
-        yield self.OUTPUT, FloatMessage(timestamp = t, data = self.t_since_qrs)
+        if self.t_since_qrs == 0: # publish times of R peaks
+            yield self.OUTPUT, FloatMessage(timestamp = t, data = self.t_since_qrs)

@@ -77,7 +77,6 @@ class Graph(lg.Graph):
             #'experiment_events': self.DISPLAY.EXPERIMENT_EVENTS,
             }
 
-# Entry point: run the Demo graph
 if __name__ == "__main__":
     sub_num = input('Enter subject number: ')
     sub_num = int(sub_num)

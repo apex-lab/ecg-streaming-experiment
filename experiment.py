@@ -28,6 +28,7 @@ class ExperimentState(lg.State):
     t_of_last_R: float = None
     trial_type: str = 'systole'
     detected: bool = False
+    trial_on: bool = False
 
 class ExperimentConfig(lg.Config):
     trials: int = 2
@@ -61,65 +62,69 @@ class Experiment(lg.Node):
     @property
     def IBI(self):
         '''
-        the mean of the interbeat interval over buffer
+        running mean of inter-beat intervals
         '''
-        return np.mean(self.state.ibis)
+        return np.median(self.state.ibis)
 
     @lg.subscriber(INPUT)
-    def update(self, message: FloatMessage) -> None:
+    async def update(self, message: FloatMessage) -> None:
         """
-        Subscribes to topic that gives time since last R-peak.
+        Subscribes to R-peak event
         """
         t = message.timestamp
-        time_since_rpeak = message.data
-        if time_since_rpeak != 0:
-            return
-        # if an R-peak was detected, update state
         ibi = t - self.state.t_of_last_R
         self.state.ibis.append(ibi) # add to buffer
         self.state.t_of_last_R = t
-        # and then trigger next tones if during a trial
-        self.state.detected = True
+        self.state.detected = True # signal main thread
 
-    def wait_until_detected(self):
-        #self.state.detected = False # reset
+    def wait_until_detected(self, reset = True):
+        '''
+        waits for an R-peak until one is detected, and 
+        returns time of R-peak on PTB clock
+        '''
+        if reset:
+            self.state.detected = False 
         while not self.state.detected:
-            continue#ptb.WaitSecs(.005)
-        self.state.detected = False # reset
-        t = self.state.t_of_last_R
+            continue
+        self.state.detected = False # always resets after 
+        t = self.state.t_of_last_R # time of R-peak on LSL clock
         already_elapsed = local_clock() - t
         t = ptb.GetSecs() - already_elapsed # time of R-peak on PTB clock
         return t
 
-    def streaming_trial(self, A = 1000., phase = 'systole'):
-        print(phase)
+    def streaming_trial(self, phase = 'systole', A = 750, B = 500):
 
-        B = 500.
+        print(phase)
 
         th = 1/6 # middle of systole as a proportion of R-R interval
         ibi = self.IBI
-        dur = ibi/4 - .12 # minus space in between stimuli
+        dur = ibi/8 # minus space in between stimuli
         A1 = Sound(A, secs = dur)
         B1 = Sound(B, secs = dur)
         A2 = Sound(A, secs = dur)
 
-        self.state.detected = False # reset
-        tt = ptb.GetSecs()
-        while ptb.GetSecs() < (tt + self.config.trial_duration):
-            t = self.wait_until_detected() # time of R peak
+        t0 = ptb.GetSecs()
+        t = self.wait_until_detected() # time of R peak
+        while ptb.GetSecs() < (t0 + self.config.trial_duration):
+            #t = self.wait_until_detected() # time of R peak
             ibi = self.IBI
-            if phase == 'systole':
-                offsets = [(th+3/4)*ibi, (th+1)*ibi, (th+5/4)*ibi]
-            elif phase == 'diastole':
-                offsets = [(th+1/4)*ibi, (th+1/2)*ibi, (th+3/4)*ibi]
+            if phase == 'systole': # aim for B to be in middle on next systole
+                offsets = [(th+3/4)*ibi, (th+4/4)*ibi, (th+5/4)*ibi]
+            elif phase == 'diastole': # aim for all tones to come after next systole
+                # (could also try before next R-peak, but 
+                # timing is tight for very fast heart rates)
+                offsets = [(th+5/4)*ibi, (th+6/4)*ibi, (th+7/4)*ibi]
             A1.play(when = t + offsets[0])
             B1.play(when = t + offsets[1])
             A2.play(when = t + offsets[2])
-            ptb.WaitSecs('UntilTime', t + offsets[2] + dur)
+            ptb.WaitSecs('YieldSecs', t + offsets[2] + dur - ptb.GetSecs())
             A1.stop()
             B1.stop()
             A2.stop()
+            t += self.IBI
+            
         self.wait_until_detected()
+        return dict(A_hz = A, tone_duration = dur)
             
     @lg.main
     def experiment(self):
@@ -138,6 +143,7 @@ class Experiment(lg.Node):
         for i in range(10):
             self.wait_until_detected()
             print('det')
+
         ptb.WaitSecs(1.)
         self.streaming_trial(phase = 'systole')
         ptb.WaitSecs(1.)
@@ -146,7 +152,7 @@ class Experiment(lg.Node):
         self.streaming_trial(phase = 'systole')
         ptb.WaitSecs(1.)
         self.streaming_trial(phase = 'diastole')
-        
+                
         # orient the subject
         #show_opening_instructions(win, self.kb)
         
