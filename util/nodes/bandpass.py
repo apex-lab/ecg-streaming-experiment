@@ -15,7 +15,7 @@ class BandPassState(lg.State):
 
 class BandPassConfig(lg.Config):
     # filter specifications
-    low_cutoff: float = .1
+    low_cutoff: float = 5.,
     high_cutoff: float = 15.
     sfreq: float = 100.
     order: int = 1
@@ -54,6 +54,8 @@ class BandPass(lg.Node):
         '''
         t = message.timestamp
         x = message.data[self.config.ch_idx] # pull out data channel
+        if not np.isfinite(x):
+            x = self.state.xs[0] # handle NaNs
         a = self.a
         b = self.b
         self.state.xs.appendleft(x)
