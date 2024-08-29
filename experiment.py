@@ -107,7 +107,7 @@ class Experiment(lg.Node):
         t = self.wait_until_detected() # time of R peak
         while ptb.GetSecs() < (t0 + self.config.trial_duration):
             #t = self.wait_until_detected() # time of R peak
-            ibi = self.IBI
+            #ibi = self.IBI
             if phase == 'systole': # aim for B to be in middle on next systole
                 offsets = [(th+3/4)*ibi, (th+4/4)*ibi, (th+5/4)*ibi]
             elif phase == 'diastole': # aim for all tones to come after next systole
