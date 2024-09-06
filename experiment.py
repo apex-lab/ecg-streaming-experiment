@@ -11,14 +11,15 @@ from pylsl import local_clock
 from psychopy.sound.backend_ptb import SoundPTB as Sound
 from psychopy import monitors, visual, core
 import psychtoolbox as ptb
-#from util.ui.instructions import (
-#    show_opening_instructions,
-    #show_break_instructions,
-    #show_midpoint_instructions,
-#    show_closing_instructions,
-#    get_2AFC
-#)
-#from util.ui.input import get_keyboard
+from util.ui.display import (
+    show_opening_instructions,
+    show_midpoint_instructions,
+    show_closing_instructions,
+    solicit_2AFC_streaming,
+    solicit_2AFC_discrimination,
+    fixation_cross
+)
+from util.ui.input import get_keyboard
 
 from util.nodes.util.messages import FloatMessage
 import labgraph as lg
@@ -35,7 +36,7 @@ class ExperimentConfig(lg.Config):
     kb_name: str = 'Dell Dell USB Keyboard'
     buffer_size: int = 10 # of IBIs to average over when caculating HR
     trial_duration: float = 10. # seconds
-        
+
 
 class Experiment(lg.Node):
     """
@@ -79,22 +80,24 @@ class Experiment(lg.Node):
 
     def wait_until_detected(self, reset = True):
         '''
-        waits for an R-peak until one is detected, and 
+        waits for an R-peak until one is detected, and
         returns time of R-peak on PTB clock
         '''
         if reset:
-            self.state.detected = False 
+            self.state.detected = False
         while not self.state.detected:
             continue
-        self.state.detected = False # always resets after 
+        self.state.detected = False # always resets after
         t = self.state.t_of_last_R # time of R-peak on LSL clock
         already_elapsed = local_clock() - t
         t = ptb.GetSecs() - already_elapsed # time of R-peak on PTB clock
         return t
 
-    def streaming_trial(self, phase = 'systole', A = 750, B = 500):
-
-        print(phase)
+    def play_tones(self, trial_type, phase, A = 750, B = 500):
+        '''
+        Cues tones to be played for every R-peak until the trial duration
+        elapses, then waits until the next R-peak to return.
+        '''
 
         th = 1/6 # middle of systole as a proportion of R-R interval
         ibi = self.IBI
@@ -111,21 +114,48 @@ class Experiment(lg.Node):
             if phase == 'systole': # aim for B to be in middle on next systole
                 offsets = [(th+3/4)*ibi, (th+4/4)*ibi, (th+5/4)*ibi]
             elif phase == 'diastole': # aim for all tones to come after next systole
-                # (could also try before next R-peak, but 
+                # (could also try before next R-peak, but
                 # timing is tight for very fast heart rates)
                 offsets = [(th+5/4)*ibi, (th+6/4)*ibi, (th+7/4)*ibi]
-            A1.play(when = t + offsets[0])
-            B1.play(when = t + offsets[1])
-            A2.play(when = t + offsets[2])
+            if trial_type == 'streaming':
+                A1.play(when = t + offsets[0])
+                B1.play(when = t + offsets[1])
+                A2.play(when = t + offsets[2])
+            elif trial_type == 'discrimination':
+                B1.play(when = t + offsets[1])
             ptb.WaitSecs('YieldSecs', t + offsets[2] + dur - ptb.GetSecs())
             A1.stop()
             B1.stop()
             A2.stop()
             t += self.IBI
-            
+
         self.wait_until_detected()
-        return dict(A_hz = A, tone_duration = dur)
-            
+        return dict(trial = trial_type, A_hz = A, B_hz = B, tone_duration = dur)
+
+    def streaming_trial(self, win, kb, phase, A = 750):
+        t0 = local_clock() # on LSL clock, so it can be aligned with physio
+        fixation_cross(win, kb) # displays until next screen flip...
+        ptb.WaitSecs('YieldSecs', .5)
+        info = self.play_tones('streaming', phase, A)
+        t1 = local_clock()
+        resp = solicit_2AFC_streaming(win, kb) # this is the next screen flip.
+        info['response'] = resp
+        info['onset'] =  t0
+        info['duration'] = t1 - t0
+        return info
+
+    def discrimination_trial(self, win, kb, phase):
+        t0 = local_clock()
+        fixation_cross(win, kb)
+        ptb.WaitSecs('YieldSecs', .5)
+        info = self.play_tones('discrimination', phase)
+        t1 = local_clock()
+        resp = solicit_2AFC_discrimination(win, kb)
+        info['response'] = resp
+        info['onset'] =  t0
+        info['duration'] = t1 - t0
+        return info
+
     @lg.main
     def experiment(self):
         '''
@@ -152,10 +182,10 @@ class Experiment(lg.Node):
         self.streaming_trial(phase = 'systole')
         ptb.WaitSecs(1.)
         self.streaming_trial(phase = 'diastole')
-                
+
         # orient the subject
         #show_opening_instructions(win, self.kb)
-        
+
         #for trial in range(self.config.trials//2):
         #    self.streaming_trial(1000., 'systole')
         #for trial in range(self.config.trials//2):
