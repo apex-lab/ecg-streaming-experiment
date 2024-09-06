@@ -1,13 +1,17 @@
 from typing import Tuple
 from time import strftime
 from typing import Dict
+from os import path as op
 
 from util.nodes.lsl import LSLPollerNode, LSLPollerConfig
 from util.nodes.sim import ECGSimulator, ECGConfig
 from util.nodes.bandpass import BandPass, BandPassConfig
 from util.nodes.qrs import QRSDetector, QRSDetectorConfig
-from experiment import Experiment
+from experiment import Experiment, ExperimentConfig
 import labgraph as lg
+
+t0 = strftime('%Y%m%d-%H%M%S')
+
 
 SIMULATE = True
 ECG_CHANNEL = 0     # channel of LSL stream to use as ECG
@@ -56,6 +60,13 @@ class Graph(lg.Graph):
                 sfreq = SFREQ
             )
         )
+        self.EXPERIMENT.configure(
+            ExperimentConfig(
+                trials = 4, # per task, across both systole and diastole
+                kb_name = 'Dell Dell USB Keyboard',
+                log_name = op.abspath(op.join('logs', t0 + '.tsv'))
+            )
+        )
 
     # Connect outputs to inputs
     def connections(self) -> lg.Connections:
@@ -84,8 +95,8 @@ if __name__ == "__main__":
     graph = Graph()
     options = lg.RunnerOptions(
         logger_config = lg.LoggerConfig(
-            output_directory = './logs', # label w/ subject number and datetime
-            recording_name = 'sub-%s_%s'%(sub, strftime('%Y%m%d-%H%M%S')),
+            output_directory = './logs', # label has subject number and datetime
+            recording_name = 'sub-%s_%s'%(sub, t0),
         ),
     )
     runner = lg.ParallelRunner(graph = graph, options = options)

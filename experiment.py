@@ -6,6 +6,8 @@ import numpy as np
 import asyncio
 import time
 from pylsl import local_clock
+from time import strftime
+from logging import TSVLogger
 
 # force psychtoolbox audio backend so sounds can be scheduled
 from psychopy.sound.backend_ptb import SoundPTB as Sound
@@ -37,6 +39,7 @@ class ExperimentConfig(lg.Config):
     kb_name: str = 'Dell Dell USB Keyboard'
     buffer_size: int = 10 # of IBIs to average over when caculating HR
     trial_duration: float = 10. # seconds
+    log_name: str = None
 
 
 class Experiment(lg.Node):
@@ -51,6 +54,8 @@ class Experiment(lg.Node):
     def setup(self) -> None: # anything involving graphics is set up in .main()
         self.state.t_of_last_R = local_clock()
         self.state.ibis = deque([], self.config.buffer_size)
+        if self.config.log_name is None: # default is time of Experiment init  
+            self.config.log_name = strftime('%Y%m%d-%H%M%S') + '.tsv'
 
     def cleanup(self) -> None:
         """
@@ -130,7 +135,13 @@ class Experiment(lg.Node):
             t += self.IBI
 
         self.wait_until_detected()
-        return dict(trial = trial_type, A_hz = A, B_hz = B, tone_duration = dur)
+        info = dict(
+            trial = trial_type,
+            cardiac_phase = phase,
+            A_hz = A, B_hz = B,
+            tone_duration = dur
+        )
+        return info
 
     def streaming_trial(self, win, kb, phase, A = 750):
         t0 = local_clock() # on LSL clock, so it can be aligned with physio
@@ -154,6 +165,7 @@ class Experiment(lg.Node):
         info['response'] = resp
         info['onset'] =  t0
         info['duration'] = t1 - t0
+        del info['A_hz'] # because only B tone was presented
         return info
 
     @lg.main # decorator indicates always to be run in main thread
@@ -171,6 +183,8 @@ class Experiment(lg.Node):
             units = 'pix',
         )
 
+        log = TSVLogger(self.config.log_name)
+
         # orient the subject
         show_opening_instructions(win, self.kb)
 
@@ -185,12 +199,16 @@ class Experiment(lg.Node):
             hz = staircases[phase].get_next_freq()
             trial_info = self.streaming_trial(win, kb, phase, A = hz)
             staircases[phase].update(trial_info)
+            log.write(trial_info)
 
         show_midpoint_instructions(win, kb)
 
         np.random.shuffle(trials)
         for phase in trials:
             trial_info = self.discrimination_trial(win, kb, phase)
+            log.write(trial_info)
+
+        del log # closes log file
 
         show_closing_instructions(win, self.kb)
         win.close()
