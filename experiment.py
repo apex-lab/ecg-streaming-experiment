@@ -20,6 +20,7 @@ from util.ui.display import (
     fixation_cross
 )
 from util.ui.input import get_keyboard
+from util.bopt import FrequencyStaircase
 
 from util.nodes.util.messages import FloatMessage
 import labgraph as lg
@@ -32,7 +33,7 @@ class ExperimentState(lg.State):
     trial_on: bool = False
 
 class ExperimentConfig(lg.Config):
-    trials: int = 2
+    trials: int = 10 # per task, across both trial types (systole and diastole)
     kb_name: str = 'Dell Dell USB Keyboard'
     buffer_size: int = 10 # of IBIs to average over when caculating HR
     trial_duration: float = 10. # seconds
@@ -50,7 +51,6 @@ class Experiment(lg.Node):
     def setup(self) -> None: # anything involving graphics is set up in .main()
         self.state.t_of_last_R = local_clock()
         self.state.ibis = deque([], self.config.buffer_size)
-        #self.kb = get_keyboard(self.config.kb_name)
 
     def cleanup(self) -> None:
         """
@@ -134,7 +134,7 @@ class Experiment(lg.Node):
 
     def streaming_trial(self, win, kb, phase, A = 750):
         t0 = local_clock() # on LSL clock, so it can be aligned with physio
-        fixation_cross(win, kb) # displays until next screen flip...
+        fixation_cross(win) # displays until next screen flip...
         ptb.WaitSecs('YieldSecs', .5)
         info = self.play_tones('streaming', phase, A)
         t1 = local_clock()
@@ -146,7 +146,7 @@ class Experiment(lg.Node):
 
     def discrimination_trial(self, win, kb, phase):
         t0 = local_clock()
-        fixation_cross(win, kb)
+        fixation_cross(win)
         ptb.WaitSecs('YieldSecs', .5)
         info = self.play_tones('discrimination', phase)
         t1 = local_clock()
@@ -156,12 +156,13 @@ class Experiment(lg.Node):
         info['duration'] = t1 - t0
         return info
 
-    @lg.main
+    @lg.main # decorator indicates always to be run in main thread
     def experiment(self):
         '''
         This is the main experiment code. Any graphics-related objects need to
         be set up here, since graphics need to be handled from the main thread.
         '''
+        kb = get_keyboard(self.config.kb_name)
         win = visual.Window( # must be started here in main thread
             size = [1920//4, 1080//4],
             fullscr = False,
@@ -170,28 +171,27 @@ class Experiment(lg.Node):
             units = 'pix',
         )
 
-        for i in range(10):
-            self.wait_until_detected()
-            print('det')
-
-        ptb.WaitSecs(1.)
-        self.streaming_trial(phase = 'systole')
-        ptb.WaitSecs(1.)
-        self.streaming_trial(phase = 'diastole')
-        ptb.WaitSecs(1.)
-        self.streaming_trial(phase = 'systole')
-        ptb.WaitSecs(1.)
-        self.streaming_trial(phase = 'diastole')
-
         # orient the subject
-        #show_opening_instructions(win, self.kb)
+        show_opening_instructions(win, self.kb)
 
-        #for trial in range(self.config.trials//2):
-        #    self.streaming_trial(1000., 'systole')
-        #for trial in range(self.config.trials//2):
-        #    self.streaming_trial(1000., 'diastole')
+        n_trials = self.config.trials
+        trials = (n_trials//2 * ['systole']) + (n_trials//2 * ['diastole'])
+        np.random.shuffle(trials) # pseudo-random trial order
+        staircases = dict(
+            systole = FrequencyStaircase(), # use Bayesian staircase to
+            diastole = FrequencyStaircase() # select A-tone frequencies
+        )
+        for phase in trials:
+            hz = staircases[phase].get_next_freq()
+            trial_info = self.streaming_trial(win, kb, phase, A = hz)
+            staircases[phase].update(trial_info)
 
+        show_midpoint_instructions(win, kb)
 
-        #show_closing_instructions(win, self.kb)
+        np.random.shuffle(trials)
+        for phase in trials:
+            trial_info = self.discrimination_trial(win, kb, phase)
+
+        show_closing_instructions(win, self.kb)
         win.close()
         raise lg.NormalTermination()
