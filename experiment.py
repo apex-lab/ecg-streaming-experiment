@@ -7,7 +7,7 @@ import asyncio
 import time
 from pylsl import local_clock
 from time import strftime
-from logging import TSVLogger
+from util.logging import TSVLogger
 
 # force psychtoolbox audio backend so sounds can be scheduled
 from psychopy.sound.backend_ptb import SoundPTB as Sound
@@ -186,7 +186,7 @@ class Experiment(lg.Node):
         log = TSVLogger(self.config.log_name)
 
         # orient the subject
-        show_opening_instructions(win, self.kb)
+        show_opening_instructions(win, kb)
 
         n_trials = self.config.trials
         trials = (n_trials//2 * ['systole']) + (n_trials//2 * ['diastole'])
@@ -199,17 +199,17 @@ class Experiment(lg.Node):
             hz = staircases[phase].get_next_freq()
             trial_info = self.streaming_trial(win, kb, phase, A = hz)
             staircases[phase].update(trial_info)
-            log.write(trial_info)
+            log.write(**trial_info)
 
         show_midpoint_instructions(win, kb)
 
         np.random.shuffle(trials)
         for phase in trials:
             trial_info = self.discrimination_trial(win, kb, phase)
-            log.write(trial_info)
+            log.write(**trial_info)
 
         del log # closes log file
 
-        show_closing_instructions(win, self.kb)
+        show_closing_instructions(win, kb)
         win.close()
         raise lg.NormalTermination()
