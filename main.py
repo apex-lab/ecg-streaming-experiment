@@ -13,10 +13,10 @@ import labgraph as lg
 t0 = strftime('%Y%m%d-%H%M%S')
 
 
-SIMULATE = True
-ECG_CHANNEL = 0     # channel of LSL stream to use as ECG
+SIMULATE = False
+ECG_CHANNEL = 1     # channel of LSL stream to use as ECG
 SFREQ = 100.        # desired sampling rate
-POLLING_RATE = 500. # lowest hardware rate of TMSi SAGA
+POLLING_RATE = 100. # lowest hardware rate of TMSi SAGA
 
 if SIMULATE:
     ecg_args = dict(sfreq = SFREQ)
@@ -62,7 +62,7 @@ class Graph(lg.Graph):
         )
         self.EXPERIMENT.configure(
             ExperimentConfig(
-                trials = 4, # per task, across both systole and diastole
+                trials = 10, # per task, across both systole and diastole
                 kb_name = 'Darfon HP Wired Desktop 320K Keyboard',
                 log_name = op.abspath(op.join('logs', t0 + '.tsv'))
             )

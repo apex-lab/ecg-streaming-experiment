@@ -34,6 +34,8 @@ class LSLPollerNode(lg.Node):
             if t is not None:
                 count += 1
                 x = np.array(sample)
+                x[1] -= x[0] # reference EP1_pos to EP1_neg
+                x[1] /= (50 * 1000) # convert V to mV
                 if count % self.config.downsample == 0:
                     yield self.OUTPUT, SampleMessage(timestamp = t, data = x)
                 await rate.sleep()
