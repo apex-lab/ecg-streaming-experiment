@@ -39,9 +39,9 @@ class LSLPollerNode(lg.Node):
             t += self.inlet.time_correction() # map timestamp to local clock
             if t is not None:
                 count += 1
-                x = np.array(sample)
-                x[1] -= x[0] # reference EP1_pos to EP1_neg
-                x[1] /= (50 * 1000) # convert V to mV
                 if count % self.config.downsample == 0:
+                    x = np.array(sample)
+                    x[1] = x[1] - x[0] # reference EP1_pos to EP1_neg
+                    x[1] = x[1] / (50 * 1000) # convert (gain 50)*V to mV
                     yield self.OUTPUT, SampleMessage(timestamp = t, data = x)
                 await rate.sleep()
