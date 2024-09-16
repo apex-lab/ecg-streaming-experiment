@@ -23,6 +23,12 @@ class LSLPollerNode(lg.Node):
     def setup(self) -> None:
         self.streams = resolve_stream('type', self.config.type)
         self.inlet = StreamInlet(self.streams[0])
+        # check that first channel is EP preamp
+        info = self.inlet.info()
+        ch = info.desc().child('channels').child('channel')
+        assert(ch.child_value('label') == 'EP1_neg')
+        # check that sampling rate matches expected
+        assert(info.nominal_srate() == self.config.sfreq)
 
     @lg.publisher(OUTPUT)
     async def lsl_subscriber(self) -> lg.AsyncPublisher:
