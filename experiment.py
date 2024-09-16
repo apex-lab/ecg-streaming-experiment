@@ -98,7 +98,7 @@ class Experiment(lg.Node):
         t = ptb.GetSecs() - already_elapsed # time of R-peak on PTB clock
         return t
 
-    def play_tones(self, trial_type, phase, A = 750, B = 450):
+    def play_tones(self, trial_type, phase, A = 750, B = 400):
         '''
         Cues tones to be played for every R-peak until the trial duration
         elapses, then waits until the next R-peak to return.
