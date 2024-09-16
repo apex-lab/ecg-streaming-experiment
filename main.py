@@ -16,7 +16,7 @@ t0 = strftime('%Y%m%d-%H%M%S')
 SIMULATE = False
 ECG_CHANNEL = 1     # channel of LSL stream to use as ECG
 SFREQ = 100.        # desired sampling rate
-POLLING_RATE = 100. # lowest hardware rate of TMSi SAGA
+POLLING_RATE = 1000. # lowest hardware rate of TMSi SAGA
 
 if SIMULATE:
     ecg_args = dict(sfreq = SFREQ)
