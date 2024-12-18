@@ -114,7 +114,7 @@ class Experiment(lg.Node):
         elapses, then waits until the next R-peak to return.
         '''
 
-        self.marker.send('%s_%s'%(trial_type, phase))
+        self.marker.send(EVENT_CODES['%s_%s'%(trial_type, phase)])
 
         th = 1/6 # middle of systole as a proportion of R-R interval
         ibi = self.IBI
