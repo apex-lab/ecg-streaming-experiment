@@ -8,6 +8,7 @@ import time
 from pylsl import local_clock
 from time import strftime
 from util.logging import TSVLogger
+from util.events import EventMarker
 
 # force psychtoolbox audio backend so sounds can be scheduled
 from psychopy.sound.backend_ptb import SoundPTB as Sound
@@ -26,6 +27,13 @@ from util.bopt import FrequencyStaircase
 
 from util.nodes.util.messages import FloatMessage
 import labgraph as lg
+
+EVENT_CODES = dict(
+    streaming_systole = 11,
+    streaming_diastole = 12,
+    discrimination_systole = 21,
+    discrimination_diastole = 22
+)
 
 class ExperimentState(lg.State):
     ibis: Deque[float] = None
@@ -57,6 +65,7 @@ class Experiment(lg.Node):
         self.state.ibis = deque([], self.config.buffer_size)
         if self.config.log_name is None: # default is time of Experiment init  
             self.config.log_name = strftime('%Y%m%d-%H%M%S') + '.tsv'
+        self.marker = EventMarker() # sends triggers to brainvision amp
 
     def cleanup(self) -> None:
         """
@@ -104,6 +113,8 @@ class Experiment(lg.Node):
         Cues tones to be played for every R-peak until the trial duration
         elapses, then waits until the next R-peak to return.
         '''
+
+        self.marker.send('%s_%s'%(trial_type, phase))
 
         th = 1/6 # middle of systole as a proportion of R-R interval
         ibi = self.IBI
@@ -214,4 +225,5 @@ class Experiment(lg.Node):
 
         show_closing_instructions(win, kb)
         win.close()
+        self.marker.close()
         raise lg.NormalTermination()
