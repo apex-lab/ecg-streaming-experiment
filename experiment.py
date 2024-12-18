@@ -40,6 +40,7 @@ class ExperimentConfig(lg.Config):
     buffer_size: int = 10 # of IBIs to average over when caculating HR
     trial_duration: float = 10. # seconds
     log_name: str = None
+    vol: float = None
 
 
 class Experiment(lg.Node):
@@ -108,9 +109,9 @@ class Experiment(lg.Node):
         ibi = self.IBI
         dur = ibi/8 # minus space in between stimuli
         assert(np.isfinite(ibi))
-        A1 = Sound(A, secs = dur)
-        B1 = Sound(B, secs = dur)
-        A2 = Sound(A, secs = dur)
+        A1 = Sound(A, secs = dur, volume = self.config.vol)
+        B1 = Sound(B, secs = dur, volume = self.config.vol)
+        A2 = Sound(A, secs = dur, volume = self.config.vol)
 
         t0 = ptb.GetSecs()
         t = self.wait_until_detected() # time of R peak

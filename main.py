@@ -12,8 +12,12 @@ import labgraph as lg
 
 t0 = strftime('%Y%m%d-%H%M%S')
 
+VOLUME = .1 # as percent of maximum
+# (with hardware we used, setting system volume to max
+# and this volume param to 0.1 results in 65 dB-A according 
+# to amprobe SM-10 sound level meter)
 
-SIMULATE = False
+SIMULATE = True
 ECG_CHANNEL = 1     # channel of LSL stream to use as ECG
 SFREQ = 100.        # desired sampling rate
 POLLING_RATE = 1000. # lowest hardware rate of TMSi SAGA
@@ -66,7 +70,8 @@ class Graph(lg.Graph):
             ExperimentConfig(
                 trials = 10, # per task, across both systole and diastole
                 kb_name = 'Dell Dell USB Entry Keyboard',
-                log_name = op.abspath(op.join('logs', t0 + '.tsv'))
+                log_name = op.abspath(op.join('logs', t0 + '.tsv')),
+                vol = VOLUME
             )
         )
 
