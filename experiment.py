@@ -107,6 +107,7 @@ class Experiment(lg.Node):
         th = 1/6 # middle of systole as a proportion of R-R interval
         ibi = self.IBI
         dur = ibi/8 # minus space in between stimuli
+        assert(np.isfinite(ibi))
         A1 = Sound(A, secs = dur)
         B1 = Sound(B, secs = dur)
         A2 = Sound(A, secs = dur)
@@ -176,10 +177,10 @@ class Experiment(lg.Node):
         '''
         kb = get_keyboard(self.config.kb_name)
         win = visual.Window( # must be started here in main thread
-            size = [1920//4, 1080//4],
+            size = [1920, 1080],
             fullscr = False,
-            #allowGUI = False,
-            #screen = -1,
+            allowGUI = False,
+            screen = -1,
             units = 'pix',
         )
 

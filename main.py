@@ -19,6 +19,7 @@ SFREQ = 100.        # desired sampling rate
 POLLING_RATE = 1000. # lowest hardware rate of TMSi SAGA
 
 if SIMULATE:
+    ECG_CHANNEL = 0
     ecg_args = dict(sfreq = SFREQ)
     ECGNode = ECGSimulator
     ECGConfig = ECGConfig
@@ -28,7 +29,8 @@ else:
     assert(int(downsample) == downsample) # can only downsample by integer
     ecg_args = dict(
         sfreq = POLLING_RATE,
-        downsample = int(downsample)
+        downsample = int(downsample),
+        log_name = op.abspath(op.join('eeg', t0 + '.tsv'))
     )
     ECGNode = LSLPollerNode
     ECGConfig = LSLPollerConfig
@@ -63,7 +65,7 @@ class Graph(lg.Graph):
         self.EXPERIMENT.configure(
             ExperimentConfig(
                 trials = 10, # per task, across both systole and diastole
-                kb_name = 'Darfon HP Wired Desktop 320K Keyboard',
+                kb_name = 'Dell Dell USB Entry Keyboard',
                 log_name = op.abspath(op.join('logs', t0 + '.tsv'))
             )
         )

@@ -4,6 +4,7 @@ import asyncio
 
 from .util.messages import SampleMessage
 from .util.rate import Rate
+from ..logging import TSVLogger
 import labgraph as lg
 
 
@@ -11,6 +12,7 @@ class LSLPollerConfig(lg.Config):
     type: str = 'EEG'
     sfreq: float = 500.
     downsample: int = 1
+    log_name: str = None
 
 class LSLPollerNode(lg.Node):
 
@@ -23,12 +25,19 @@ class LSLPollerNode(lg.Node):
     def setup(self) -> None:
         self.streams = resolve_stream('type', self.config.type)
         self.inlet = StreamInlet(self.streams[0])
-        # check that first channel is EP preamp
         info = self.inlet.info()
-        ch = info.desc().child('channels').child('channel')
-        assert(ch.child_value('label') == 'EP1_neg')
+        ch_names = []
+        ch = info.desc().child("channels").child("channel")
+        for k in range(info.channel_count()):
+            ch_names.append(ch.child_value("label"))
+            ch = ch.next_sibling()
+        # check that we have the right stream (i.e. first channel is preamp)
+        assert(ch_names[0] == 'EP1_neg')
         # check that sampling rate matches expected
         assert(info.nominal_srate() == self.config.sfreq)
+        self.ch_names = ch_names
+        self.log = TSVLogger(self.config.log_name)
+
 
     @lg.publisher(OUTPUT)
     async def lsl_subscriber(self) -> lg.AsyncPublisher:
@@ -38,6 +47,10 @@ class LSLPollerNode(lg.Node):
             sample, t = self.inlet.pull_sample()
             t += self.inlet.time_correction() # map timestamp to local clock
             if t is not None:
+                self.log.write(**{ # save all samples to file 
+                    self.ch_names[i]: sample[i] 
+                    for i in range(len(sample))
+                })
                 count += 1
                 if count % self.config.downsample == 0:
                     x = np.array(sample)
