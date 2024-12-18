@@ -12,9 +12,9 @@ import labgraph as lg
 
 t0 = strftime('%Y%m%d-%H%M%S')
 
-VOLUME = .1 # as percent of maximum
+VOLUME = .6 # as percent of maximum
 # (with hardware we used, setting system volume to max
-# and this volume param to 0.1 results in 65 dB-A according 
+# and this volume param to 0.6 results in 65 dB-A according 
 # to amprobe SM-10 sound level meter)
 
 SIMULATE = True
