@@ -42,7 +42,7 @@ class LSLPollerNode(lg.Node):
 
     @lg.publisher(OUTPUT)
     async def lsl_subscriber(self) -> lg.AsyncPublisher:
-        rate = Rate(self.config.sfreq)
+        rate = Rate(self.config.sfreq * 2)
         count = 0
         while True:
             sample, t = self.inlet.pull_sample()
