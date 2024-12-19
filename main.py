@@ -20,7 +20,7 @@ VOLUME = .6 # as percent of maximum
 SIMULATE = False
 ECG_CHANNEL = 0     # channel of LSL stream to use as ECG
 SFREQ = 100.        # desired sampling rate
-POLLING_RATE = 2000. 
+POLLING_RATE = 10000. 
 
 if SIMULATE:
     ecg_args = dict(sfreq = SFREQ)
