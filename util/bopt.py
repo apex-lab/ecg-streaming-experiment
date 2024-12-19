@@ -9,7 +9,7 @@ class FrequencyStaircase:
     We should use one staircase per
     '''
 
-    def __init__(self, freq_range = [500, 5000]):
+    def __init__(self, freq_range = [510, 5000]):
 
         # stimulus domain
         a0 = np.log2(freq_range[0]) # convert to octave/logartihmic scaling

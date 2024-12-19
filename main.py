@@ -17,13 +17,12 @@ VOLUME = .6 # as percent of maximum
 # and this volume param to 0.6 results in 65 dB-A according 
 # to amprobe SM-10 sound level meter)
 
-SIMULATE = True
-ECG_CHANNEL = 1     # channel of LSL stream to use as ECG
+SIMULATE = False
+ECG_CHANNEL = 0     # channel of LSL stream to use as ECG
 SFREQ = 100.        # desired sampling rate
-POLLING_RATE = 1000. # lowest hardware rate of TMSi SAGA
+POLLING_RATE = 2000. 
 
 if SIMULATE:
-    ECG_CHANNEL = 0
     ecg_args = dict(sfreq = SFREQ)
     ECGNode = ECGSimulator
     ECGConfig = ECGConfig

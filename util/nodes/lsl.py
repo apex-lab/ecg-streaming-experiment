@@ -1,4 +1,4 @@
-from pylsl import StreamInlet, resolve_stream
+from pylsl import StreamInlet, resolve_stream, local_clock
 import numpy as np
 import asyncio
 
@@ -33,6 +33,7 @@ class LSLPollerNode(lg.Node):
             ch = ch.next_sibling()
         # check that we have the right stream (i.e. first channel is preamp)
         assert(ch_names[0] == 'EP1_neg')
+        assert(ch_names[1] == 'EP1_pos')
         # check that sampling rate matches expected
         assert(info.nominal_srate() == self.config.sfreq)
         self.ch_names = ch_names
@@ -45,7 +46,6 @@ class LSLPollerNode(lg.Node):
         count = 0
         while True:
             sample, t = self.inlet.pull_sample()
-            t += self.inlet.time_correction() # map timestamp to local clock
             if t is not None:
                 self.log.write(**{ # save all samples to file 
                     self.ch_names[i]: sample[i] 
@@ -53,8 +53,8 @@ class LSLPollerNode(lg.Node):
                 })
                 count += 1
                 if count % self.config.downsample == 0:
-                    x = np.array(sample)
-                    x[1] = x[1] - x[0] # reference EP1_pos to EP1_neg
-                    x[1] = x[1] / (50 * 1000) # convert (gain 50)*V to mV
-                    yield self.OUTPUT, SampleMessage(timestamp = t, data = x)
+                    t += self.inlet.time_correction() # map timestamp to local clock
+                    x = sample[1] - sample[0] # reference EP1_pos to EP1_neg
+                    x = x / (50 * 1000) # convert (gain 50)*V to mV
+                    yield self.OUTPUT, SampleMessage(timestamp = t, data = np.array([x]))
                 await rate.sleep()
