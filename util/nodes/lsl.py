@@ -66,4 +66,4 @@ class LSLPollerNode(lg.Node):
                         x = x / (50 * 1000) # convert (gain 50)*V to mV
                         yield self.OUTPUT, SampleMessage(timestamp = t, data = np.array([x]))
                 self.write_chunk(chunk)
-            #await rate.sleep()
+            await asyncio.sleep(1./self.config.sfreq)
