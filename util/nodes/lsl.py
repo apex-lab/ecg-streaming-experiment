@@ -3,7 +3,7 @@ import numpy as np
 import asyncio
 
 from .util.messages import SampleMessage
-from .util.rate import Rate
+#from .util.rate import Rate
 from ..logging import TSVLogger
 import labgraph as lg
 
@@ -54,11 +54,10 @@ class LSLPollerNode(lg.Node):
 
     @lg.publisher(OUTPUT)
     async def lsl_subscriber(self) -> lg.AsyncPublisher:
-        rate = Rate(self.config.sfreq)
+        #rate = Rate(self.config.sfreq)
         while True:
             chunk, timestamps = self.inlet.pull_chunk()
             if timestamps:
-                self.write_chunk(chunk)
                 offset = self.inlet.time_correction() # map timestamp to local clock
                 for sample, t in zip(chunk, timestamps):
                     if sample[-1] % self.config.downsample == 0:
@@ -66,4 +65,5 @@ class LSLPollerNode(lg.Node):
                         x = sample[1] - sample[0] # reference EP1_pos to EP1_neg
                         x = x / (50 * 1000) # convert (gain 50)*V to mV
                         yield self.OUTPUT, SampleMessage(timestamp = t, data = np.array([x]))
-            await rate.sleep()
+                self.write_chunk(chunk)
+            #await rate.sleep()
