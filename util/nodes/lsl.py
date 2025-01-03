@@ -1,10 +1,10 @@
 from pylsl import StreamInlet, resolve_stream, local_clock
 import numpy as np
 import asyncio
+import os 
 
 from .util.messages import SampleMessage
 #from .util.rate import Rate
-from ..logging import TSVLogger
 import labgraph as lg
 
 
@@ -39,13 +39,12 @@ class LSLPollerNode(lg.Node):
         assert(info.nominal_srate() == self.config.sfreq)
         self.srate = info.nominal_srate()
         self.ch_names = ch_names
-        self.log = TSVLogger(self.config.log_name)
+        os.mkdir(self.config.log_name)
 
     def write_sample(self, sample):
-        self.log.write(**{ # save all samples to file 
-            self.ch_names[i]: sample[i] 
-            for i in range(len(sample))
-        })
+        sample_idx = sample[-1]
+        f = os.path.join(self.config.log_name, '%d.npy'%sample_idx)
+        np.save(f, np.array(sample), allow_pickle = False)
 
     def write_chunk(self, chunk):
         for i in range(len(chunk)):

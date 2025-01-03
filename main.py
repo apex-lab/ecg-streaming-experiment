@@ -33,7 +33,7 @@ else:
     ecg_args = dict(
         sfreq = POLLING_RATE,
         downsample = int(downsample),
-        log_name = op.abspath(op.join('eeg', t0 + '.tsv'))
+        log_name = op.abspath(op.join('eeg', t0))
     )
     ECGNode = LSLPollerNode
     ECGConfig = LSLPollerConfig
