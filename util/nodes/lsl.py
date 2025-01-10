@@ -41,15 +41,10 @@ class LSLPollerNode(lg.Node):
         self.ch_names = ch_names
         os.mkdir(self.config.log_name)
 
-    def write_sample(self, sample):
-        sample_idx = sample[-1]
-        f = os.path.join(self.config.log_name, '%d.npy'%sample_idx)
-        np.save(f, np.array(sample), allow_pickle = False)
-
     def write_chunk(self, chunk):
-        for i in range(len(chunk)):
-            sample = chunk[i]
-            self.write_sample(sample)
+        idx = chunk[0][-1] # count of first sample in chunk
+        f = os.path.join(self.config.log_name, '%d.npy'%idx)
+        np.save(f, np.array(chunk), allow_pickle = False)
 
     @lg.publisher(OUTPUT)
     async def lsl_subscriber(self) -> lg.AsyncPublisher:

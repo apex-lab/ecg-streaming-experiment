@@ -45,7 +45,7 @@ class ExperimentState(lg.State):
 class ExperimentConfig(lg.Config):
     trials: int = 10 # per task, across both trial types (systole and diastole)
     kb_name: str = 'Dell Dell USB Keyboard'
-    buffer_size: int = 10 # of IBIs to average over when caculating HR
+    buffer_size: int = 10  # of IBIs to average over when caculating HR
     trial_duration: float = 10. # seconds
     log_name: str = None
     vol: float = None

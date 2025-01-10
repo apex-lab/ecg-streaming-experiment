@@ -32,13 +32,13 @@ def show_opening_instructions(win, kb):
     msg = '''
     In this experiment, we will play you sequences of tones.
 
-    These tone sequences will either sound like a single, galloping rhythm
+    These tone sequences will either sound more like a single, galloping rhythm
     consisting of two tones, like ABA-ABA (where - denotes a space),
 
-    or they will sound like two metronome-like rhythms playing simultaneously
+    or they will sound more like two metronome-like rhythms playing simultaneously
     but at different tempos, like A-A-A-A and B---B---.
 
-    Each tone sequence is ambiguous, so you could hear either possibility.
+    Each tone sequence is ambiguous, so it could sound more to you like    either possibility.
     '''
     _show_instructions(win, kb, msg)
 
