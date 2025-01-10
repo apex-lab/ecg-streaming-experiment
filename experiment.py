@@ -127,7 +127,7 @@ class Experiment(lg.Node):
         t0 = ptb.GetSecs()
         t = self.wait_until_detected() # time of R peak
         while ptb.GetSecs() < (t0 + self.config.trial_duration):
-            ibi = self.IBI
+            ibi = self.IBI#self.state.ibis[-1]
             if phase == 'systole': # aim for B to be in middle on next systole
                 offsets = [(th+3/4)*ibi, (th+4/4)*ibi, (th+5/4)*ibi]
             elif phase == 'diastole': # aim for all tones to come after next systole
@@ -141,11 +141,11 @@ class Experiment(lg.Node):
             elif trial_type == 'discrimination':
                 B1.play(when = t + offsets[1])
             ptb.WaitSecs('YieldSecs', t + offsets[-1] + dur - ptb.GetSecs())
+            t += self.state.ibis[-1]
             A1.stop()
             B1.stop()
             A2.stop()
-            t += self.state.ibis[-1]
-
+        
         self.wait_until_detected()
         info = dict(
             trial = trial_type,
