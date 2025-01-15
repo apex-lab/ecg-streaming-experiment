@@ -111,6 +111,7 @@ def show_closing_instructions(win, kb):
     Thank you for participating.
 
     Please let the experimenter know you're done.
+    (You can press the button on your desk to do so.)
     '''
     _show_instructions(win, kb, msg)
 

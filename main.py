@@ -67,7 +67,7 @@ class Graph(lg.Graph):
         )
         self.EXPERIMENT.configure(
             ExperimentConfig(
-                trials = 10, # per task, across both systole and diastole
+                trials = 100, # per task, across both systole and diastole
                 kb_name = 'Dell Dell USB Entry Keyboard',
                 log_name = op.abspath(op.join('logs', t0 + '.tsv')),
                 vol = VOLUME
