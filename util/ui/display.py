@@ -73,6 +73,11 @@ def show_midpoint_instructions(win, kb):
     msg = '''
     You have completed the first task!
 
+    Please press the button on your desk to notify the experimenter,
+    and wait for further instructions before continuing. 
+    '''
+    _show_instructions(win, kb, msg)
+    msg = '''
     Now you will complete a task to assess whether you can feel your heartbeat.
     '''
     _show_instructions(win, kb, msg)
