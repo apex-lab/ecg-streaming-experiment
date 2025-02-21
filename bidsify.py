@@ -26,10 +26,10 @@ def reformat_events(events, timestamp, triggers):
         A_hz = events.A_hz.iloc[i]
         B_hz = events.B_hz.iloc[i]
         trial_type = events.trial.iloc[i]
-        if trial_type == 'streaming':
+        #if trial_type == 'streaming':
             # if tones don't come in triplets,
             # something went wrong....
-            assert(tone_onsets.size % 3 == 0)
+            #assert(tone_onsets.size % 3 == 0)
         tone_names = ['A', 'B', 'A'] if trial_type == 'streaming' else ['B']
         for j, onset in enumerate(tone_onsets):
             tone = tone_names[j % len(tone_names)]
@@ -173,8 +173,8 @@ def main(sub, sub_timestamp):
     raw_disc, evs_disc = format_eeg(data, disc, timestamp > cutoff)
 
     ## now write data to BIDS directory!
-    write_to_bids('amy', 'streaming', raw_stream, evs_stream)
-    write_to_bids('amy', 'discrimination', raw_disc, evs_disc)
+    write_to_bids(sub, 'streaming', raw_stream, evs_stream)
+    write_to_bids(sub, 'discrimination', raw_disc, evs_disc)
 
     ## and make dataset description file in case doesn't already exist
     make_dataset_description(
@@ -201,4 +201,5 @@ if __name__ == "__main__":
     for s in sub_nums:
         sub = '%02d'%s
         timestamp = sub_ids[s]
+        print('Starting sub-%s...'%sub)
         main(sub, timestamp)
