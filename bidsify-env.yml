@@ -1,0 +1,12 @@
+name: bidsify
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.12
+  - mne=1.7.0
+  - pandas=2.2
+  - pip
+  - pip:
+    - pybids==0.16
+    - mne_bids==0.14
