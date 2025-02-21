@@ -20,16 +20,20 @@ def reformat_events(events, timestamp, triggers):
     tone_infos = []
     for i in range(events.shape[0]):
         trial_onset = events.onset.iloc[i]
-        trial_end = trial_onset + events.duration.iloc[i]
+        trial_end = trial_onset + events.duration.iloc[i] 
         during_trial = np.logical_and(trial_onset < timestamp, timestamp < trial_end)
         tone_onsets = timestamp[np.logical_and(during_trial, triggers == 128)]
         A_hz = events.A_hz.iloc[i]
         B_hz = events.B_hz.iloc[i]
         trial_type = events.trial.iloc[i]
-        #if trial_type == 'streaming':
+        if trial_type == 'streaming':
             # if tones don't come in triplets,
             # something went wrong....
-            #assert(tone_onsets.size % 3 == 0)
+            try:
+                assert(tone_onsets.size % 3 == 0)
+            except:
+                continue # skip this trial, since we aren't sure delivered correctly
+                #raise Exception('%d tones in trial %d!'%(tone_onsets.size, i+1))
         tone_names = ['A', 'B', 'A'] if trial_type == 'streaming' else ['B']
         for j, onset in enumerate(tone_onsets):
             tone = tone_names[j % len(tone_names)]
