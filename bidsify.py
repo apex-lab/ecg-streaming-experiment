@@ -65,7 +65,7 @@ def format_eeg(data, events, idx):
         sfreq = SRATE
     )
     data = np.stack([eeg, ecg, audio], axis = 0)
-    raw = mne.io.RawArray(data, info)
+    raw = mne.io.RawArray(data*1e-6, info) # input in Volts
     raw.info['line_freq'] = LINE_FREQ
     return raw, events
 
