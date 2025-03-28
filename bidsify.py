@@ -3,6 +3,7 @@ import numpy as np
 import os
 import re
 import json
+from datetime import datetime
 
 from mne_bids import BIDSPath, write_raw_bids, make_dataset_description
 import mne
@@ -20,7 +21,7 @@ def reformat_events(events, timestamp, triggers):
     tone_infos = []
     for i in range(events.shape[0]):
         trial_onset = events.onset.iloc[i]
-        trial_end = trial_onset + events.duration.iloc[i] 
+        trial_end = trial_onset + events.duration.iloc[i]
         during_trial = np.logical_and(trial_onset < timestamp, timestamp < trial_end)
         tone_onsets = timestamp[np.logical_and(during_trial, triggers == 128)]
         A_hz = events.A_hz.iloc[i]
@@ -192,16 +193,21 @@ def main(sub, sub_timestamp):
     )
 
 
+
+def latest_timestamp(labgraph_logs, i):
+    fs = [f for f in labgraph_logs if 'sub-%02d'%i in f]
+    timestamps = [re.findall(r'_(\w+-\w+).h5', f)[0] for f in fs]
+    ts = [datetime.strptime(t, '%Y%m%d-%H%M%S') for t in timestamps]
+    return timestamps[np.argmax(ts)]
+
 if __name__ == "__main__":
     log_dir = os.path.join(SOURCE_DIR, 'logs')
     log_fs = os.listdir(log_dir)
     labgraph_logs = [f for f in log_fs if '.h5' in f]
-    sub_ids = {
-        int(re.findall(r'sub-(\w+)_', f)[0]): re.findall(r'_(\w+-\w+).h5', f)[0]
-        for f in labgraph_logs
-    }
-    sub_nums = [s for s in sub_ids]
+    sub_nums = [int(re.findall(r'sub-(\w+)_', f)[0]) for f in labgraph_logs]
+    sub_nums = np.unique(sub_nums).tolist()
     sub_nums.sort()
+    sub_ids = {sub_num: latest_timestamp(labgraph_logs, i) for i in sub_nums}
     for s in sub_nums:
         sub = '%02d'%s
         timestamp = sub_ids[s]
