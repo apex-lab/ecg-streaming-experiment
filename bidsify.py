@@ -207,7 +207,7 @@ if __name__ == "__main__":
     sub_nums = [int(re.findall(r'sub-(\w+)_', f)[0]) for f in labgraph_logs]
     sub_nums = np.unique(sub_nums).tolist()
     sub_nums.sort()
-    sub_ids = {sub_num: latest_timestamp(labgraph_logs, i) for i in sub_nums}
+    sub_ids = {i: latest_timestamp(labgraph_logs, i) for i in sub_nums}
     for s in sub_nums:
         sub = '%02d'%s
         timestamp = sub_ids[s]
